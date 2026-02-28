@@ -1,0 +1,36 @@
+{
+  "title": "Key Detect",
+  "children": [
+    {
+      "title": "Overview",
+      "lines": [
+        "Musical key detection",
+        "from incoming audio.",
+        "",
+        "Analyzes audio in",
+        "real-time and",
+        "displays the",
+        "detected key.",
+        "",
+        "Pass-through effect",
+        "(audio unchanged)."
+      ]
+    },
+    {
+      "title": "Controls",
+      "lines": [
+        "Knob 1: Window",
+        " Analysis window",
+        " size (1-8 seconds)",
+        "",
+        "Longer window =",
+        "more accurate but",
+        "slower response.",
+        "",
+        "Detected key shown",
+        "on display (e.g.",
+        "\"C Major\")."
+      ]
+    }
+  ]
+}

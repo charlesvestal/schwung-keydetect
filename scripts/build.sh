@@ -74,6 +74,7 @@ ${CROSS_PREFIX}g++ -shared \
 # Package
 echo "Packaging..."
 cp src/module.json dist/keydetect/module.json
+[ -f src/help.json ] && cp src/help.json dist/keydetect/help.json
 cp build/keydetect.so dist/keydetect/keydetect.so
 chmod +x dist/keydetect/keydetect.so
 
