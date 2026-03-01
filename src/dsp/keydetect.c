@@ -38,7 +38,7 @@ static void* v2_create_instance(const char *module_dir, const char *config_json)
         strncpy(inst->module_dir, module_dir, sizeof(inst->module_dir) - 1);
     }
 
-    inst->window = 4.0f;
+    inst->window = 2.0f;
     strcpy(inst->detected_key, "---");
 
     inst->kd = kd_create(MOVE_SAMPLE_RATE);
@@ -131,7 +131,7 @@ static const char *UI_HIERARCHY =
 static const char *CHAIN_PARAMS =
     "["
         "{\"key\":\"window\",\"name\":\"Window\",\"type\":\"float\","
-         "\"min\":1,\"max\":8,\"step\":0.5,\"default\":4,\"unit\":\"s\"}"
+         "\"min\":1,\"max\":8,\"step\":0.5,\"default\":2,\"unit\":\"s\"}"
     "]";
 
 static int v2_get_param(void *instance, const char *key, char *buf, int buf_len) {

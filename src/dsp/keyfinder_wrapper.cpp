@@ -2,7 +2,7 @@
  * keyfinder_wrapper.cpp - C++ wrapper around libkeyfinder
  *
  * Audio thread is completely lock-free with zero-copy handoff (ping-pong).
- * Audio is downsampled 4x before analysis to reduce CPU load.
+ * Audio is downsampled 8x before analysis to reduce CPU load.
  * Analysis thread runs at low priority.
  */
 
@@ -31,12 +31,12 @@ static const char* key_names[] = {
 };
 
 /*
- * Downsample factor: feed libkeyfinder at ~11025 Hz instead of 44100 Hz.
- * Key detection only needs pitch info up to ~4 kHz, so this is fine.
- * Reduces FFT/analysis CPU by ~4x.
+ * Downsample factor: feed libkeyfinder at ~5512 Hz instead of 44100 Hz.
+ * Key detection only needs pitch info up to ~2 kHz (covers all musical keys).
+ * Reduces FFT/analysis CPU by ~8x vs raw rate.
  */
-#define DOWNSAMPLE 4
-#define EFFECTIVE_RATE (44100 / DOWNSAMPLE)  /* 11025 Hz */
+#define DOWNSAMPLE 8
+#define EFFECTIVE_RATE (44100 / DOWNSAMPLE)  /* 5512 Hz */
 
 /* Max buffer: 8 seconds at downsampled rate, plus headroom for one block */
 #define MAX_BUF_SAMPLES (8 * EFFECTIVE_RATE + 128)
@@ -69,6 +69,7 @@ struct kd_context {
     int sample_rate;
     float window_seconds;
     int window_samples;                 /* at downsampled rate */
+    int skip_windows;                   /* windows to skip after each analysis (CPU throttle) */
 };
 
 static void analysis_thread_fn(kd_context *ctx) {
@@ -147,6 +148,7 @@ void* kd_create(int sample_rate) {
     ctx->ready_buf.store(-1, std::memory_order_relaxed);
     ctx->ready_len.store(0, std::memory_order_relaxed);
     ctx->shutdown.store(false, std::memory_order_relaxed);
+    ctx->skip_windows = 0;
     std::memset(ctx->votes, 0, sizeof(ctx->votes));
     std::strcpy(ctx->detected_key, "---");
 
@@ -185,15 +187,21 @@ void kd_feed(void *ptr, const int16_t *stereo_audio, int frames) {
 
             /* Check if we've filled a window */
             if (pos >= ctx->window_samples) {
-                /* Hand off: only if analysis thread is idle */
-                if (ctx->ready_buf.load(std::memory_order_relaxed) < 0) {
+                if (ctx->skip_windows > 0) {
+                    /* Cooldown: skip this window to reduce CPU load */
+                    ctx->skip_windows--;
+                } else if (ctx->ready_buf.load(std::memory_order_relaxed) < 0) {
+                    /* Analysis idle — hand off this buffer */
                     ctx->ready_len.store(pos, std::memory_order_relaxed);
                     ctx->ready_buf.store(buf_idx, std::memory_order_release);
                     /* Swap to other buffer — zero copy */
                     buf_idx = 1 - buf_idx;
                     ctx->active_buf.store(buf_idx, std::memory_order_relaxed);
                     buf = ctx->bufs[buf_idx];
+                    /* Skip next window to give CPU a break between analyses */
+                    ctx->skip_windows = 1;
                 }
+                /* else: analysis busy — discard and refill */
                 pos = 0;
             }
         }
@@ -225,6 +233,7 @@ void kd_set_window(void *ptr, float seconds) {
     ctx->window_samples = (int)(seconds * EFFECTIVE_RATE);
     ctx->write_pos = 0;
     ctx->downsample_counter = 0;
+    ctx->skip_windows = 0;
     ctx->ready_buf.store(-1, std::memory_order_relaxed);
     std::memset(ctx->votes, 0, sizeof(ctx->votes));
     std::strcpy(ctx->detected_key, "---");
