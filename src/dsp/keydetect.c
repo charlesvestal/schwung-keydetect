@@ -39,7 +39,7 @@ static void* v2_create_instance(const char *module_dir, const char *config_json)
     }
 
     inst->window = 2.0f;
-    strcpy(inst->detected_key, "---");
+    strcpy(inst->detected_key, "no key");   /* matches key_names[SILENCE] */
 
     inst->kd = kd_create(MOVE_SAMPLE_RATE);
     if (!inst->kd) {
@@ -128,10 +128,39 @@ static const char *UI_HIERARCHY =
         "}"
     "}";
 
+/*
+ * detected_key is declared as an ENUM even though get_param returns the key
+ * NAME rather than an index.
+ *
+ * It has to be declared at all: without a chain_params entry the Shadow UI
+ * cannot know the type and falls back to guessing a 0..1 float, so the
+ * detected key was drawn as a knob pointing at nothing.
+ *
+ * Enum rather than string because of the widget each one selects. A string
+ * gets the one-line opaque box (13px of text, about three characters — "A maj"
+ * truncates); an enum gets the two-line square, which splits on the space and
+ * renders "A" over "MAJ". Both the renderer and the screen reader fall back to
+ * the raw value when it is not a valid index, so returning the name keeps
+ * working — and the options below stay in key_names order so an index would
+ * resolve correctly too.
+ *
+ * Read-only in practice: set_param ignores it, so a stray knob turn snaps back
+ * on the next read.
+ */
 static const char *CHAIN_PARAMS =
     "["
         "{\"key\":\"window\",\"name\":\"Window\",\"type\":\"float\","
-         "\"min\":1,\"max\":8,\"step\":0.5,\"default\":2,\"unit\":\"s\"}"
+         "\"min\":1,\"max\":8,\"step\":0.5,\"default\":2,\"unit\":\"s\"},"
+        "{\"key\":\"detected_key\",\"name\":\"Key\",\"type\":\"enum\","
+         "\"options\":["
+            "\"A maj\",\"A min\",\"Bb maj\",\"Bb min\","
+            "\"B maj\",\"B min\",\"C maj\",\"C min\","
+            "\"Db maj\",\"Db min\",\"D maj\",\"D min\","
+            "\"Eb maj\",\"Eb min\",\"E maj\",\"E min\","
+            "\"F maj\",\"F min\",\"Gb maj\",\"Gb min\","
+            "\"G maj\",\"G min\",\"Ab maj\",\"Ab min\","
+            "\"no key\""
+         "]}"
     "]";
 
 static int v2_get_param(void *instance, const char *key, char *buf, int buf_len) {

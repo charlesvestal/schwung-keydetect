@@ -27,7 +27,10 @@ static const char* key_names[] = {
     "Eb maj", "Eb min", "E maj",  "E min",
     "F maj",  "F min",  "Gb maj", "Gb min",
     "G maj",  "G min",  "Ab maj", "Ab min",
-    "---"     /* SILENCE = 24 */
+    /* Not "---": the Shadow UI's enum square strips '-' and '_' as word
+     * separators before splitting, so a run of dashes renders as an EMPTY
+     * box. Two short words also split cleanly across its two lines. */
+    "no key"  /* SILENCE = 24 */
 };
 
 /*
@@ -150,7 +153,7 @@ void* kd_create(int sample_rate) {
     ctx->shutdown.store(false, std::memory_order_relaxed);
     ctx->skip_windows = 0;
     std::memset(ctx->votes, 0, sizeof(ctx->votes));
-    std::strcpy(ctx->detected_key, "---");
+    std::strcpy(ctx->detected_key, "no key");
 
     ctx->worker = std::thread(analysis_thread_fn, ctx);
 
@@ -236,7 +239,7 @@ void kd_set_window(void *ptr, float seconds) {
     ctx->skip_windows = 0;
     ctx->ready_buf.store(-1, std::memory_order_relaxed);
     std::memset(ctx->votes, 0, sizeof(ctx->votes));
-    std::strcpy(ctx->detected_key, "---");
+    std::strcpy(ctx->detected_key, "no key");
 }
 
 float kd_get_window(void *ptr) {
