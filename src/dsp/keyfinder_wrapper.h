@@ -30,7 +30,7 @@ void kd_feed(void *ctx, const int16_t *stereo_audio, int frames);
 
 /* Get the currently detected key as a human-readable string.
  * Returns bytes written (excluding NUL), or 0 if no key detected yet.
- * Example output: "Eb min", "A maj", "---" */
+ * Example output: "Eb min", "A maj", "no key" */
 int kd_get_key(void *ctx, char *buf, int buf_len);
 
 /* Set the analysis window size in seconds (1.0 - 8.0).

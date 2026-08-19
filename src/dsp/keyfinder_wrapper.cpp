@@ -3,7 +3,8 @@
  *
  * Audio thread is completely lock-free with zero-copy handoff (ping-pong).
  * Audio is downsampled 8x before analysis to reduce CPU load.
- * Analysis thread runs at low priority.
+ * Analysis thread forces itself to SCHED_OTHER on cores 0-2 — it inherits
+ * Move's realtime audio priority otherwise, see analysis_thread_fn.
  */
 
 #include "keyfinder_wrapper.h"
@@ -27,7 +28,10 @@ static const char* key_names[] = {
     "Eb maj", "Eb min", "E maj",  "E min",
     "F maj",  "F min",  "Gb maj", "Gb min",
     "G maj",  "G min",  "Ab maj", "Ab min",
-    "---"     /* SILENCE = 24 */
+    /* Not "---": the Shadow UI's enum square strips '-' and '_' as word
+     * separators before splitting, so a run of dashes renders as an EMPTY
+     * box. Two short words also split cleanly across its two lines. */
+    "no key"  /* SILENCE = 24 */
 };
 
 /*
@@ -73,8 +77,44 @@ struct kd_context {
 };
 
 static void analysis_thread_fn(kd_context *ctx) {
-    /* Set low priority so we don't compete with audio */
-    nice(10);
+    /* Drop to SCHED_OTHER explicitly, and do it FIRST.
+     *
+     * `nice(10)` alone was a no-op and this thread was running REALTIME.
+     * kd_create() is reached from the module-load path, which Schwung's shim
+     * services inside the SPI callback — i.e. on Move's SCHED_FIFO 70 audio
+     * thread. std::thread inherits the creator's scheduling policy, so this
+     * "low priority" thread came up at SCHED_FIFO 70, and nice() does not
+     * affect SCHED_FIFO threads at all.
+     *
+     * Consequence, measured on hardware 2026-08-19: keyOfAudio() below is a
+     * ~200 ms FFT over the analysis window, and it ran at priority 70 —
+     * ABOVE Move's own "Link Main" thread, which is SCHED_FIFO 35. Every
+     * analysis pass starved Move's Link Audio publisher for ~200 ms, so Move
+     * stopped emitting per-track audio and then delivered ~70 packets in one
+     * burst. Audible as periodic dropouts, on a 4.0 s grid (a 2.0 s window
+     * with skip_windows == 1 analyses every second window). Loading keydetect
+     * caused it; unloading it stopped it.
+     *
+     * SCHED_OTHER + nice(10) is what the original comment intended.
+     */
+    {
+        struct sched_param sp;
+        memset(&sp, 0, sizeof(sp));
+        sp.sched_priority = 0;
+        sched_setscheduler(0, SCHED_OTHER, &sp);
+    }
+    if (nice(10) == -1) { /* best-effort; SCHED_OTHER above is what matters */ }
+
+    /* Keep off core 3, which is reserved for the SPI callback. Matches the
+     * pinning Schwung applies to its own compute-heavy processes. */
+    {
+        cpu_set_t mask;
+        CPU_ZERO(&mask);
+        CPU_SET(0, &mask);
+        CPU_SET(1, &mask);
+        CPU_SET(2, &mask);
+        sched_setaffinity(0, sizeof(mask), &mask);
+    }
 
     KeyFinder::KeyFinder keyfinder;
 
@@ -150,7 +190,7 @@ void* kd_create(int sample_rate) {
     ctx->shutdown.store(false, std::memory_order_relaxed);
     ctx->skip_windows = 0;
     std::memset(ctx->votes, 0, sizeof(ctx->votes));
-    std::strcpy(ctx->detected_key, "---");
+    std::strcpy(ctx->detected_key, "no key");
 
     ctx->worker = std::thread(analysis_thread_fn, ctx);
 
@@ -236,7 +276,7 @@ void kd_set_window(void *ptr, float seconds) {
     ctx->skip_windows = 0;
     ctx->ready_buf.store(-1, std::memory_order_relaxed);
     std::memset(ctx->votes, 0, sizeof(ctx->votes));
-    std::strcpy(ctx->detected_key, "---");
+    std::strcpy(ctx->detected_key, "no key");
 }
 
 float kd_get_window(void *ptr) {
