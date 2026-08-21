@@ -144,14 +144,24 @@ static const char *UI_HIERARCHY =
  * working — and the options below stay in key_names order so an index would
  * resolve correctly too.
  *
- * Read-only in practice: set_param ignores it, so a stray knob turn snaps back
- * on the next read.
+ * DECLARED read-only. `set_param` ignores it, and "read-only in practice" was
+ * fine while an enum could only be nudged one detent at a time and snapped
+ * back on the next read. Schwung 1.0 made every enum with options DIVABLE, so
+ * the option picker opened on this one and silently discarded whatever was
+ * chosen — 25 keys to pick from, none of which does anything.
+ *
+ * `access: "read"` says it in the contract instead: not turnable, no picker,
+ * still refreshed on screen. Older hosts ignore the field entirely (verified
+ * against the v0.12.1 parser, both C and JS), so this is safe to ship without
+ * a min_host_version bump — it just does nothing until the host understands
+ * it.
  */
 static const char *CHAIN_PARAMS =
     "["
         "{\"key\":\"window\",\"name\":\"Window\",\"type\":\"float\","
          "\"min\":1,\"max\":8,\"step\":0.5,\"default\":2,\"unit\":\"s\"},"
         "{\"key\":\"detected_key\",\"name\":\"Key\",\"type\":\"enum\","
+         "\"access\":\"read\","
          "\"options\":["
             "\"A maj\",\"A min\",\"Bb maj\",\"Bb min\","
             "\"B maj\",\"B min\",\"C maj\",\"C min\","
