@@ -2,7 +2,7 @@
     "id": "keydetect",
     "name": "Key Detect",
     "abbrev": "KD",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "Detects the musical key of audio passing through it",
     "author": "charlesvestal",
     "license": "GPL-3.0",
