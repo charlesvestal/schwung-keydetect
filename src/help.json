@@ -27,9 +27,21 @@
         "more accurate but",
         "slower response.",
         "",
-        "Detected key shown",
-        "on display (e.g.",
-        "\"C Major\")."
+        "Key is shown in",
+        "short form, e.g.",
+        "\"C maj\" or \"A min\".",
+        "",
+        "Sharps are written",
+        "as flats: Bb, Db,",
+        "Eb, Gb, Ab. 24 keys",
+        "in all.",
+        "",
+        "\"no key\" is shown",
+        "until the first",
+        "window with audio",
+        "in it is analyzed.",
+        "It never comes back",
+        "once a key is set."
       ]
     }
   ]
