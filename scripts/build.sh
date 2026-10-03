@@ -59,9 +59,18 @@ ${CROSS_PREFIX}gcc -Ofast -fPIC -c \
 
 # Link everything into shared library
 # Use g++ for linking since we have C++ objects
+#
+# -Wl,--exclude-libs,ALL keeps every symbol pulled in from a static archive
+# (libstdc++.a, libkeyfinder.a, libfftw3.a) out of .dynsym. Without it the
+# static libstdc++ exports ~100 STB_GNU_UNIQUE locale facet ids, and glibc pins
+# any DSO exporting a UNIQUE symbol NODELETE: dlclose never unmaps it. Measured
+# on a Move 2026-10-03: Dexed stayed mapped after unload and a reload reused the
+# replaced, deleted file. The entry point lives in keydetect.o, so it stays
+# exported. Check: readelf -W --dyn-syms keydetect.so | awk '$5=="UNIQUE"' -> 0.
 echo "Linking keydetect.so..."
 ${CROSS_PREFIX}g++ -shared \
     -march=armv8-a -mtune=cortex-a72 \
+    -Wl,--exclude-libs,ALL \
     build/keydetect.o \
     build/keyfinder_wrapper.o \
     -L/opt/arm64/lib \
