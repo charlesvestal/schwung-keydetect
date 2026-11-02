@@ -1,3 +1,6 @@
 build/
 dist/
 .DS_Store
+test/audio/
+test/test_direct
+test/test_keydetect

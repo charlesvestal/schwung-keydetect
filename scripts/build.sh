@@ -86,6 +86,13 @@ cp src/module.json dist/keydetect/module.json
 [ -f src/help.json ] && cp src/help.json dist/keydetect/help.json
 cp build/keydetect.so dist/keydetect/keydetect.so
 chmod +x dist/keydetect/keydetect.so
+# Licences travel with the binary: keydetect.so statically links libkeyfinder
+# (GPL-3.0-or-later) and FFTW (GPL-2.0-or-later). See NOTICE. Unconditional on
+# purpose -- a release without them is non-compliant and looks identical.
+mkdir -p dist/keydetect/licenses
+cp LICENSE dist/keydetect/LICENSE
+cp NOTICE dist/keydetect/NOTICE
+cp licenses/GPL-3.0.txt dist/keydetect/licenses/GPL-3.0.txt
 
 # Create tarball for GitHub release
 cd dist

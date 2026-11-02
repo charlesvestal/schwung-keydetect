@@ -1,0 +1,22 @@
+Key Detect for Schwung
+======================
+
+Source code in this repository is Copyright (c) 2025-2026 Charles Vestal and
+is licensed under the MIT License (see LICENSE).
+
+The distributed binary, keydetect.so, is a combined work. It statically links:
+
+  - libkeyfinder 2.2.8 (https://github.com/mixxxdj/libkeyfinder)
+    GPL-3.0-or-later
+  - FFTW 3.3.10 (http://www.fftw.org/)
+    GPL-2.0-or-later
+
+so keydetect.so as distributed is licensed under GPL-3.0-or-later
+(licenses/GPL-3.0.txt). Corresponding source for both libraries is at the URLs
+above; the exact versions are pinned in scripts/Dockerfile. The MIT-licensed
+source in this repository may still be reused under MIT by anyone who does not
+link those libraries.
+
+Test audio: the GiantSteps Key dataset clips used for accuracy testing are NOT
+distributed with this repository. test/download_audio.sh fetches them from
+their original source for local testing only.

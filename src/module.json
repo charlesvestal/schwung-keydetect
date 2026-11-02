@@ -5,7 +5,7 @@
     "version": "0.1.5",
     "description": "Detects the musical key of audio passing through it",
     "author": "charlesvestal",
-    "license": "GPL-3.0",
+    "license": "MIT (source) / GPL-3.0-or-later (binary: links libkeyfinder, FFTW)",
     "dsp": "keydetect.so",
     "api_version": 2,
     "capabilities": {
